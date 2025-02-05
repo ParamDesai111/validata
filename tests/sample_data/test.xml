@@ -1,0 +1,7 @@
+<Records>
+    <Record><ID>1</ID><Name>Alice</Name><Age>25</Age><Salary>50000</Salary></Record>
+    <Record><ID>2</ID><Name>Bob</Name><Age></Age><Salary>60000</Salary></Record>
+    <Record><ID>3</ID><Name></Name><Age>30</Age><Salary>70000</Salary></Record>
+    <Record><ID>4</ID><Name>David</Name><Age>40</Age><Salary></Salary></Record>
+    <Record><ID>5</ID><Name>Eve</Name><Age>35</Age><Salary>80000</Salary></Record>
+</Records>

@@ -1,20 +1,21 @@
 package main
 
 import (
-	"fmt"
+	"validata/utils"
 	"validata/validator"
+	"fmt"
 )
 
 func main() {
-	fmt.Println("Data Quality Toolkit Running...")
-
-	// Example Data
-	data := [][]string{
-		{"1", "2", ""},
-		{"4", "", "6"},
-		{"7", "8", "9"},
+	data, err := utils.ReadCSV("data/sample.csv", true)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
 	}
 
-	missing := validator.DetectMissingValues(data)
-	fmt.Println("Missing Values Count:", missing)
+	missingCounts := validator.DetectMissingValues(data)
+	fmt.Println("Missing Values Count:", missingCounts)
+
+	imputedData := validator.ImputeMissingValues(data, "mean")
+	fmt.Println("Imputed Data:", imputedData)
 }
