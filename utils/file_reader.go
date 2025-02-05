@@ -32,7 +32,7 @@ func ReadCSV(filePath string, hasHeader bool) ([][]string, error) {
 }
 
 // ReadJSON reads a JSON file and converts it into a 2D string array
-func ReadJSON(filePath string) ([][]string, error) {
+func ReadJSON(filePath string, hasHeader bool) ([][]string, error) {
 	file, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err
@@ -48,15 +48,19 @@ func ReadJSON(filePath string) ([][]string, error) {
 		return nil, fmt.Errorf("empty JSON file")
 	}
 
-	// Extract keys (column headers)
+	// Extract column headers
 	var headers []string
 	for key := range jsonData[0] {
 		headers = append(headers, key)
 	}
 
-	// Convert to [][]string format
+	// Convert JSON to 2D string format
 	var data [][]string
-	data = append(data, headers) // First row contains headers
+
+	// If hasHeader is true, the first row contains headers
+	if hasHeader {
+		data = append(data, headers)
+	}
 
 	for _, obj := range jsonData {
 		var row []string
@@ -68,6 +72,7 @@ func ReadJSON(filePath string) ([][]string, error) {
 
 	return data, nil
 }
+
 
 // ReadXML reads an XML file and converts it into a 2D string array
 type XMLRow struct {

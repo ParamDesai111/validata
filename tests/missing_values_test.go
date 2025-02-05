@@ -10,15 +10,29 @@ import (
 )
 
 // TestReadCSV checks if the CSV file is read correctly
-func TestReadCSV(t *testing.T) {
-	data, err := utils.ReadCSV("sample_data/test.csv", true)
+func TestReadCSV_withHeader(t *testing.T) {
+	data, err := utils.ReadCSV("sample_data/test.csv", false)
 	if err != nil {
 		t.Fatalf("Failed to read CSV: %v", err)
 	}
 	fmt.Println("CSV Data:", data)
 
 	// Check that the expected number of rows is returned (excluding header)
-	expectedRows := 4
+	expectedRows := 5
+	if len(data) != expectedRows {
+		t.Errorf("Expected %d rows, but got %d", expectedRows, len(data))
+	}
+}
+
+func TestReadCSV_withoutHeader(t *testing.T) {
+	data, err := utils.ReadCSV("sample_data/test.csv", false)
+	if err != nil {
+		t.Fatalf("Failed to read CSV: %v", err)
+	}
+	fmt.Println("CSV Data:", data)
+
+	// Check that the expected number of rows is returned (including the header)
+	expectedRows := 6
 	if len(data) != expectedRows {
 		t.Errorf("Expected %d rows, but got %d", expectedRows, len(data))
 	}
@@ -26,7 +40,7 @@ func TestReadCSV(t *testing.T) {
 
 // TestReadJSON checks if the JSON file is read correctly
 func TestReadJSON(t *testing.T) {
-	data, err := utils.ReadJSON("sample_data/test.json")
+	data, err := utils.ReadJSON("sample_data/test.json", true)
 	if err != nil {
 		t.Fatalf("Failed to read JSON: %v", err)
 	}
@@ -88,7 +102,7 @@ func TestImputeMissingValues(t *testing.T) {
 
 // TestDetectMissingValuesJSON validates missing value detection for JSON data
 func TestDetectMissingValuesJSON(t *testing.T) {
-	data, _ := utils.ReadJSON("sample_data/test.json")
+	data, _ := utils.ReadJSON("sample_data/test.json", true)
 	missing := validator.DetectMissingValues(data)
 
 	fmt.Println("Missing Values Count (JSON):", missing)
