@@ -3,7 +3,6 @@ package utils
 import (
 	"encoding/csv"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -68,50 +67,6 @@ func ReadJSON(filePath string, hasHeader bool) ([][]string, error) {
 			row = append(row, fmt.Sprintf("%v", obj[key]))
 		}
 		data = append(data, row)
-	}
-
-	return data, nil
-}
-
-
-// ReadXML reads an XML file and converts it into a 2D string array
-type XMLRow struct {
-	XMLName xml.Name
-	Fields  map[string]string `xml:",any"`
-}
-
-func ReadXML(filePath string) ([][]string, error) {
-	file, err := ioutil.ReadFile(filePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var xmlRows []XMLRow
-	err = xml.Unmarshal(file, &xmlRows)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(xmlRows) == 0 {
-		return nil, fmt.Errorf("empty XML file")
-	}
-
-	// Extract headers
-	var headers []string
-	for key := range xmlRows[0].Fields {
-		headers = append(headers, key)
-	}
-
-	// Convert to [][]string format
-	var data [][]string
-	data = append(data, headers) // First row contains headers
-
-	for _, row := range xmlRows {
-		var rowData []string
-		for _, key := range headers {
-			rowData = append(rowData, row.Fields[key])
-		}
-		data = append(data, rowData)
 	}
 
 	return data, nil

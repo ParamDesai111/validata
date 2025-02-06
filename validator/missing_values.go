@@ -10,13 +10,20 @@ import (
 
 // DetectMissingValues checks for missing values in a dataset
 func DetectMissingValues(data [][]string) []int {
+	if len(data) == 0 {
+		return nil // Prevent index out of range errors
+	}
+
 	missingCounts := make([]int, len(data[0]))
 
 	for col := 0; col < len(data[0]); col++ {
 		missingCount := 0
 
 		for row := 0; row < len(data); row++ {
-			if data[row][col] == "" || data[row][col] == "NULL" {
+			val := data[row][col]
+
+			// Check if value is missing (empty, "NULL", or "null")
+			if val == "" || val == "NULL" || val == "null" {
 				missingCount++
 			}
 		}
@@ -104,8 +111,14 @@ func DetectMissingValuesDF(df dataframe.DataFrame) map[string]int {
 		col := df.Col(colName)
 
 		for i := 0; i < col.Len(); i++ {
-			val := col.Elem(i).String()
-			if val == "" || val == "NULL" {
+			val := col.Elem(i).String() // Convert value to string
+
+			// Numeric columns: Check for NaN
+			if col.Type() == series.Float && col.Elem(i).Float() != col.Elem(i).Float() {
+				missingCount++
+			}
+			// String columns: Check for empty or "NULL"
+			if col.Type() == series.String && (val == "" || val == "NULL" || val == "null") {
 				missingCount++
 			}
 		}
@@ -115,45 +128,62 @@ func DetectMissingValuesDF(df dataframe.DataFrame) map[string]int {
 	return missingCounts
 }
 
+
 // ImputeMissingValuesDF fills missing values with a given strategy (mean, median)
 func ImputeMissingValuesDF(df dataframe.DataFrame, strategy string) dataframe.DataFrame {
 	for _, colName := range df.Names() {
 		col := df.Col(colName)
 
-		// Collect numeric values
-		var numericValues []float64
-		for i := 0; i < col.Len(); i++ {
-			val := col.Elem(i).Float()
-			if !math.IsNaN(val) {
-				numericValues = append(numericValues, val)
+		// Handle numeric columns
+		if col.Type() == series.Float {
+			var numericValues []float64
+			for i := 0; i < col.Len(); i++ {
+				val := col.Elem(i).Float()
+				if !math.IsNaN(val) {
+					numericValues = append(numericValues, val)
+				}
 			}
-		}
 
-		// Compute replacement value
-		var replacementValue float64
-		switch strategy {
-		case "mean":
-			replacementValue = Mean(numericValues)
-		case "median":
-			replacementValue = Median(numericValues)
-		default:
-			fmt.Println("Unsupported strategy, defaulting to mean")
-			replacementValue = Mean(numericValues)
-		}
-
-		// Create a new column with imputed values
-		newCol := make([]float64, col.Len())
-		for i := 0; i < col.Len(); i++ {
-			val := col.Elem(i).Float()
-			if math.IsNaN(val) {
-				newCol[i] = replacementValue // Replace NaN with computed value
-			} else {
-				newCol[i] = val
+			// Compute replacement value
+			var replacementValue float64
+			switch strategy {
+			case "mean":
+				replacementValue = Mean(numericValues)
+			case "median":
+				replacementValue = Median(numericValues)
+			default:
+				fmt.Println("Unsupported strategy, defaulting to mean")
+				replacementValue = Mean(numericValues)
 			}
+
+			// Replace missing values
+			newCol := make([]float64, col.Len())
+			for i := 0; i < col.Len(); i++ {
+				val := col.Elem(i).Float()
+				if math.IsNaN(val) {
+					newCol[i] = replacementValue // Replace NaN with computed value
+				} else {
+					newCol[i] = val
+				}
+			}
+
+			// Update the DataFrame with the new column
+			df = df.Mutate(series.Floats(newCol)).Rename(colName, fmt.Sprintf("%s_imputed", colName))
 		}
 
-		// Update the DataFrame with the new column
-		df = df.Mutate(series.Floats(newCol)).Rename(colName, fmt.Sprintf("%s_imputed", colName))
+		// Handle string columns
+		if col.Type() == series.String {
+			newCol := make([]string, col.Len())
+			for i := 0; i < col.Len(); i++ {
+				val := col.Elem(i).String()
+				if val == "" || val == "NULL" || val == "null" {
+					newCol[i] = "Unknown" // Replace empty strings with "Unknown"
+				} else {
+					newCol[i] = val
+				}
+			}
+			df = df.Mutate(series.Strings(newCol)).Rename(colName, fmt.Sprintf("%s_imputed", colName))
+		}
 	}
 
 	return df
