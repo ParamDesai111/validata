@@ -116,16 +116,15 @@ func TestDetectMissingValuesJSON(t *testing.T) {
 	}
 }
 
-
 // TestDetectMissingValuesDF validates missing values detection in DataFrames
 func TestDetectMissingValuesDF(t *testing.T) {
 	df := dataframe.LoadRecords(
 		[][]string{
 			{"ID", "Name", "Age", "Salary"},
 			{"1", "Alice", "25", "50000"},
-			{"2", "Bob", "", "60000"},
-			{"3", "", "30", "70000"},
-			{"4", "David", "40", ""},
+			{"2", "Bob", "null", "60000"},
+			{"3", "null", "30", "70000"},
+			{"4", "David", "40", "null"},
 			{"5", "Eve", "35", "80000"},
 		},
 	)
@@ -141,16 +140,15 @@ func TestDetectMissingValuesDF(t *testing.T) {
 	}
 }
 
-
 // TestImputeMissingValuesDF verifies missing value imputation in DataFrames
 func TestImputeMissingValuesDF(t *testing.T) {
 	df := dataframe.LoadRecords(
 		[][]string{
 			{"ID", "Name", "Age", "Salary"},
 			{"1", "Alice", "25", "50000"},
-			{"2", "Bob", "", "60000"},
-			{"3", "", "30", "70000"},
-			{"4", "David", "40", ""},
+			{"2", "Bob", "null", "60000"},
+			{"3", "null", "30", "70000"},
+			{"4", "David", "40", "null"},
 			{"5", "Eve", "35", "80000"},
 		},
 	)

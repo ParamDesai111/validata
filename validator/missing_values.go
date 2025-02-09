@@ -111,17 +111,10 @@ func DetectMissingValuesDF(df dataframe.DataFrame) map[string]int {
 		col := df.Col(colName)
 
 		for i := 0; i < col.Len(); i++ {
-			// Numeric columns: Check for NaN values
-			if col.Type() == series.Float {
-				if math.IsNaN(col.Elem(i).Float()) {
-					missingCount++
-				}
-			} else {
-				// String columns: Check for empty or NULL values
-				val := col.Elem(i).String()
-				if val == "" || val == "NULL" || val == "null" {
-					missingCount++
-				}
+			// Check for empty strings (""), "NULL", or "null" in any column
+			val := col.Elem(i).String()
+			if val == "" || val == "NULL" || val == "null" {
+				missingCount++
 			}
 		}
 		missingCounts[colName] = missingCount
@@ -129,6 +122,7 @@ func DetectMissingValuesDF(df dataframe.DataFrame) map[string]int {
 
 	return missingCounts
 }
+
 
 // ImputeMissingValuesDF fills missing values with a given strategy (mean, median)
 func ImputeMissingValuesDF(df dataframe.DataFrame, strategy string) dataframe.DataFrame {
@@ -141,32 +135,37 @@ func ImputeMissingValuesDF(df dataframe.DataFrame, strategy string) dataframe.Da
 		if col.Type() == series.Float {
 			var numericValues []float64
 			for i := 0; i < col.Len(); i++ {
-				val := col.Elem(i).Float()
-				if !math.IsNaN(val) {
+				valStr := col.Elem(i).String()
+				if valStr != "" { // Ignore empty strings
+					val := col.Elem(i).Float()
 					numericValues = append(numericValues, val)
 				}
 			}
 
 			// Compute replacement value
 			var replacementValue float64
-			switch strategy {
-			case "mean":
-				replacementValue = Mean(numericValues)
-			case "median":
-				replacementValue = Median(numericValues)
-			default:
-				fmt.Println("Unsupported strategy, defaulting to mean")
-				replacementValue = Mean(numericValues)
+			if len(numericValues) > 0 {
+				switch strategy {
+				case "mean":
+					replacementValue = Mean(numericValues)
+				case "median":
+					replacementValue = Median(numericValues)
+				default:
+					fmt.Println("Unsupported strategy, defaulting to mean")
+					replacementValue = Mean(numericValues)
+				}
+			} else {
+				replacementValue = 0.0 // Default replacement if no valid values exist
 			}
 
-			// Replace missing values
+			// Replace empty values
 			newCol := make([]float64, col.Len())
 			for i := 0; i < col.Len(); i++ {
-				val := col.Elem(i).Float()
-				if math.IsNaN(val) {
-					newCol[i] = replacementValue // Replace NaN with computed value
+				valStr := col.Elem(i).String()
+				if valStr == "" { // Check for empty string instead of NaN
+					newCol[i] = replacementValue // Replace "" with computed value
 				} else {
-					newCol[i] = val
+					newCol[i] = col.Elem(i).Float()
 				}
 			}
 
