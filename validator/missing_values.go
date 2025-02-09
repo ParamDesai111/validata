@@ -111,15 +111,17 @@ func DetectMissingValuesDF(df dataframe.DataFrame) map[string]int {
 		col := df.Col(colName)
 
 		for i := 0; i < col.Len(); i++ {
-			val := col.Elem(i).String() // Convert value to string
-
-			// Numeric columns: Check for NaN
-			if col.Type() == series.Float && col.Elem(i).Float() != col.Elem(i).Float() {
-				missingCount++
-			}
-			// String columns: Check for empty or "NULL"
-			if col.Type() == series.String && (val == "" || val == "NULL" || val == "null") {
-				missingCount++
+			// Numeric columns: Check for NaN values
+			if col.Type() == series.Float {
+				if math.IsNaN(col.Elem(i).Float()) {
+					missingCount++
+				}
+			} else {
+				// String columns: Check for empty or NULL values
+				val := col.Elem(i).String()
+				if val == "" || val == "NULL" || val == "null" {
+					missingCount++
+				}
 			}
 		}
 		missingCounts[colName] = missingCount
@@ -128,9 +130,10 @@ func DetectMissingValuesDF(df dataframe.DataFrame) map[string]int {
 	return missingCounts
 }
 
-
 // ImputeMissingValuesDF fills missing values with a given strategy (mean, median)
 func ImputeMissingValuesDF(df dataframe.DataFrame, strategy string) dataframe.DataFrame {
+	imputedCols := make([]series.Series, 0) // Holds updated columns
+
 	for _, colName := range df.Names() {
 		col := df.Col(colName)
 
@@ -167,12 +170,10 @@ func ImputeMissingValuesDF(df dataframe.DataFrame, strategy string) dataframe.Da
 				}
 			}
 
-			// Update the DataFrame with the new column
-			df = df.Mutate(series.Floats(newCol)).Rename(colName, fmt.Sprintf("%s_imputed", colName))
-		}
-
-		// Handle string columns
-		if col.Type() == series.String {
+			// Append the modified column
+			imputedCols = append(imputedCols, series.New(newCol, series.Float, colName))
+		} else if col.Type() == series.String {
+			// Handle string columns
 			newCol := make([]string, col.Len())
 			for i := 0; i < col.Len(); i++ {
 				val := col.Elem(i).String()
@@ -182,9 +183,13 @@ func ImputeMissingValuesDF(df dataframe.DataFrame, strategy string) dataframe.Da
 					newCol[i] = val
 				}
 			}
-			df = df.Mutate(series.Strings(newCol)).Rename(colName, fmt.Sprintf("%s_imputed", colName))
+			imputedCols = append(imputedCols, series.New(newCol, series.String, colName))
+		} else {
+			// Retain original column if it's neither numeric nor string
+			imputedCols = append(imputedCols, col)
 		}
 	}
 
-	return df
+	// ✅ Ensure all columns are retained in the DataFrame
+	return dataframe.New(imputedCols...)
 }
